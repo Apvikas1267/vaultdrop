@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VaultDrop — Live Database Inspector (Admin)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              900: '#312e81',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="min-h-full flex flex-col font-sans antialiased bg-slate-950 text-slate-100 selection:bg-brand-500 selection:text-white">
+
+  <!-- Navigation -->
+  <header class="border-b border-slate-800 bg-slate-900/70 backdrop-blur-md sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <a href="/" class="flex items-center space-x-3">
+          <div class="h-9 w-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+            </svg>
+          </div>
+          <span class="text-xl font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-300 bg-clip-text text-transparent">VaultDrop</span>
+        </a>
+        <span class="text-xs uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 font-semibold">Database Inspector</span>
+      </div>
+
+      <div class="flex items-center space-x-3">
+        <button onclick="refreshData()" class="px-3 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-800 text-xs font-semibold text-slate-300 hover:text-white transition flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+          <span>Refresh Live DB</span>
+        </button>
+        <button onclick="logoutAdmin()" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 hover:text-white transition">
+          Exit Admin
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    
+    <!-- Admin Login Screen (If not authenticated) -->
+    <div id="auth-panel" class="max-w-md mx-auto bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-4 my-12">
+      <div class="w-12 h-12 rounded-xl bg-brand-500/10 text-brand-400 flex items-center justify-center mx-auto">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+        </svg>
+      </div>
+      <div class="text-center">
+        <h2 class="text-xl font-bold text-white">Database Access Control</h2>
+        <p class="text-xs text-slate-400 mt-1">Enter the secret Admin Access Key to view live users and uploaded files.</p>
+      </div>
+
+      <div id="auth-error" class="hidden p-3 bg-red-900/30 border border-red-700/50 rounded-lg text-xs text-red-300 text-center"></div>
+
+      <form onsubmit="handleAdminAuth(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Admin Key</label>
+          <input type="password" id="admin-key-input" required placeholder="••••••••••••" class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 text-sm">
+        </div>
+        <button type="submit" class="w-full py-2.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-medium text-sm transition shadow-md shadow-brand-600/30">
+          Unlock Database View
+        </button>
+      </form>
+    </div>
+
+    <!-- Live Data Dashboard (Revealed after entering correct key) -->
+    <div id="data-panel" class="hidden space-y-8">
+      
+      <!-- Stat Badges -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-5 shadow">
+          <div class="text-xs text-slate-400 font-medium">Registered Users</div>
+          <div class="text-2xl font-bold text-white mt-1" id="stat-users">0</div>
+        </div>
+        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-5 shadow">
+          <div class="text-xs text-slate-400 font-medium">Uploaded Documents</div>
+          <div class="text-2xl font-bold text-white mt-1" id="stat-files">0</div>
+        </div>
+        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-5 shadow">
+          <div class="text-xs text-slate-400 font-medium">Total Storage Occupied</div>
+          <div class="text-2xl font-bold text-indigo-400 mt-1" id="stat-storage">0.0 MB</div>
+        </div>
+        <div class="bg-slate-900/80 border border-slate-800 rounded-xl p-5 shadow">
+          <div class="text-xs text-slate-400 font-medium">Total Decrypted Downloads</div>
+          <div class="text-2xl font-bold text-emerald-400 mt-1" id="stat-downloads">0</div>
+        </div>
+      </div>
+
+      <!-- Zero-Knowledge Banner -->
+      <div class="p-4 bg-indigo-950/30 border border-indigo-900/40 rounded-xl text-xs text-indigo-300 flex items-start gap-3">
+        <svg class="w-5 h-5 text-indigo-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <div>
+          <span class="font-bold text-white">Zero-Knowledge Architecture in Effect:</span> Passwords are stored exclusively as one-way Bcrypt hashes. Physical payloads on disk are encrypted AES-256 binary blobs. Because encryption keys reside exclusively in clients' URL hashes, server administrators cannot inspect plaintext file contents.
+        </div>
+      </div>
+
+      <!-- Table 1: Registered Users -->
+      <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-base font-bold text-white flex items-center gap-2">
+            <svg class="w-5 h-5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+            </svg>
+            <span>Registered Accounts (<span id="users-count">0</span>)</span>
+          </h2>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-slate-950/70 border-b border-slate-800 text-slate-400 font-semibold uppercase tracking-wider">
+              <tr>
+                <th class="py-3 px-4">User Email</th>
+                <th class="py-3 px-4">Storage Used</th>
+                <th class="py-3 px-4">Quota Limit</th>
+                <th class="py-3 px-4">Created Timestamp</th>
+                <th class="py-3 px-4">User ID</th>
+              </tr>
+            </thead>
+            <tbody id="users-tbody" class="divide-y divide-slate-800/60 font-normal">
+              <tr>
+                <td colspan="5" class="py-6 text-center text-slate-500">Loading accounts...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Table 2: Uploaded Documents -->
+      <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-base font-bold text-white flex items-center gap-2">
+            <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+            </svg>
+            <span>Uploaded Documents (<span id="files-count">0</span>)</span>
+          </h2>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-slate-950/70 border-b border-slate-800 text-slate-400 font-semibold uppercase tracking-wider">
+              <tr>
+                <th class="py-3 px-4">Original Filename</th>
+                <th class="py-3 px-4">Owner Email</th>
+                <th class="py-3 px-4">File Size</th>
+                <th class="py-3 px-4">Downloads</th>
+                <th class="py-3 px-4">Status</th>
+                <th class="py-3 px-4">Expires At</th>
+                <th class="py-3 px-4">File ID</th>
+              </tr>
+            </thead>
+            <tbody id="files-tbody" class="divide-y divide-slate-800/60 font-normal">
+              <tr>
+                <td colspan="7" class="py-6 text-center text-slate-500">Loading documents...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <script>
+    let adminKey = sessionStorage.getItem('vaultdrop_admin_key') || '';
+
+    async function init() {
+      if (adminKey) {
+        await fetchDatabaseData();
+      }
+    }
+
+    async function handleAdminAuth(e) {
+      e.preventDefault();
+      const input = document.getElementById('admin-key-input').value.trim();
+      if (!input) return;
+
+      adminKey = input;
+      const success = await fetchDatabaseData();
+      if (success) {
+        sessionStorage.setItem('vaultdrop_admin_key', adminKey);
+      } else {
+        adminKey = '';
+        showAuthError('Invalid Admin Key. Please check and try again.');
+      }
+    }
+
+    function showAuthError(msg) {
+      const el = document.getElementById('auth-error');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+    }
+
+    function logoutAdmin() {
+      sessionStorage.removeItem('vaultdrop_admin_key');
+      adminKey = '';
+      document.getElementById('data-panel').classList.add('hidden');
+      document.getElementById('auth-panel').classList.remove('hidden');
+    }
+
+    async function refreshData() {
+      if (adminKey) {
+        await fetchDatabaseData();
+      }
+    }
+
+    async function fetchDatabaseData() {
+      try {
+        const res = await fetch('/api/admin/db', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-admin-key': adminKey
+          }
+        });
+
+        if (!res.ok) {
+          return false;
+        }
+
+        const data = await res.json();
+        renderDashboard(data);
+        return true;
+      } catch (err) {
+        console.error('Fetch error:', err);
+        return false;
+      }
+    }
+
+    function renderDashboard(data) {
+      document.getElementById('auth-panel').classList.add('hidden');
+      document.getElementById('data-panel').classList.remove('hidden');
+
+      const users = data.users || [];
+      const files = data.files || [];
+
+      // Stats
+      document.getElementById('stat-users').textContent = users.length;
+      document.getElementById('stat-files').textContent = files.length;
+      document.getElementById('users-count').textContent = users.length;
+      document.getElementById('files-count').textContent = files.length;
+
+      let totalStorageBytes = 0;
+      let totalDownloads = 0;
+      files.forEach(f => {
+        totalStorageBytes += f.file_size;
+        totalDownloads += f.download_count;
+      });
+
+      document.getElementById('stat-storage').textContent = `${(totalStorageBytes / (1024 * 1024)).toFixed(2)} MB`;
+      document.getElementById('stat-downloads').textContent = totalDownloads;
+
+      // Render Users Table
+      const usersTbody = document.getElementById('users-tbody');
+      if (users.length === 0) {
+        usersTbody.innerHTML = `<tr><td colspan="5" class="py-6 text-center text-slate-500">No registered users in database yet.</td></tr>`;
+      } else {
+        usersTbody.innerHTML = users.map(u => {
+          const usedMb = (u.storage_used / (1024 * 1024)).toFixed(2);
+          const limitMb = (u.storage_limit / (1024 * 1024)).toFixed(0);
+          return `
+            <tr class="hover:bg-slate-900/60 transition">
+              <td class="py-3 px-4 font-semibold text-white">${escapeHtml(u.email)}</td>
+              <td class="py-3 px-4 text-slate-300 font-mono">${usedMb} MB</td>
+              <td class="py-3 px-4 text-slate-400 font-mono">${limitMb} MB</td>
+              <td class="py-3 px-4 text-slate-400">${new Date(u.created_at).toLocaleString()}</td>
+              <td class="py-3 px-4 font-mono text-[11px] text-slate-500">${u.id}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+
+      // Render Files Table
+      const filesTbody = document.getElementById('files-tbody');
+      if (files.length === 0) {
+        filesTbody.innerHTML = `<tr><td colspan="7" class="py-6 text-center text-slate-500">No uploaded documents in database yet.</td></tr>`;
+      } else {
+        filesTbody.innerHTML = files.map(f => {
+          const sizeMb = (f.file_size / (1024 * 1024)).toFixed(2);
+          const isExpired = new Date() > new Date(f.expires_at);
+          let statusBadge;
+          if (f.is_revoked === 1) {
+            statusBadge = `<span class="px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 text-[10px] font-semibold">REVOKED</span>`;
+          } else if (isExpired) {
+            statusBadge = `<span class="px-2 py-0.5 rounded-full bg-slate-700/50 text-slate-400 border border-slate-600/50 text-[10px] font-semibold">EXPIRED</span>`;
+          } else {
+            statusBadge = `<span class="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-semibold">ACTIVE</span>`;
+          }
+
+          return `
+            <tr class="hover:bg-slate-900/60 transition">
+              <td class="py-3 px-4 font-semibold text-white max-w-[200px] truncate" title="${escapeHtml(f.original_name)}">${escapeHtml(f.original_name)}</td>
+              <td class="py-3 px-4 text-slate-300">${escapeHtml(f.owner_email || 'Unknown')}</td>
+              <td class="py-3 px-4 text-slate-300 font-mono">${sizeMb} MB</td>
+              <td class="py-3 px-4"><span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-[11px]">${f.download_count} dl</span></td>
+              <td class="py-3 px-4">${statusBadge}</td>
+              <td class="py-3 px-4 text-slate-400 text-[11px]">${new Date(f.expires_at).toLocaleString()}</td>
+              <td class="py-3 px-4 font-mono text-[11px] text-slate-500">${f.id}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"']/g, s => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      }[s]));
+    }
+
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>

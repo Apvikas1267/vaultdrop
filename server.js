@@ -137,6 +137,11 @@ app.get('/share', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'share.html'));
 });
 
+// Admin Live Database Viewer Page
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+});
+
 // ==========================================
 // AUTHENTICATION API ROUTES
 // ==========================================
@@ -167,6 +172,8 @@ app.post('/api/auth/signup', async (req, res) => {
       INSERT INTO users (id, email, password, storage_used, storage_limit)
       VALUES (?, ?, ?, 0, ?)
     `).run(userId, cleanEmail, hashedPassword, storageLimit);
+
+    console.log(`[AUTH] 👤 New user registered: ${cleanEmail}`);
 
     const token = jwt.sign({ id: userId, email: cleanEmail }, JWT_SECRET, { expiresIn: '7d' });
 
@@ -319,6 +326,8 @@ app.post('/api/upload', authenticate, upload.single('file'), (req, res) => {
     });
 
     insertTransaction();
+
+    console.log(`[FILE] 📤 Encrypted upload: "${originalName}" (${(fileSize / (1024 * 1024)).toFixed(2)} MB) by ${req.user.email}`);
 
     return res.status(201).json({
       message: 'Encrypted payload secured successfully.',
@@ -503,6 +512,8 @@ app.get('/api/share/:id/download', (req, res) => {
     // Increment download count
     db.prepare('UPDATE files SET download_count = download_count + 1 WHERE id = ?').run(file.id);
 
+    console.log(`[FILE] 📥 File payload downloaded: "${file.original_name}" (Total downloads: ${file.download_count + 1})`);
+
     // Enforce strict security headers
     res.setHeader('Content-Disposition', 'attachment; filename="vault_payload.bin"');
     res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -514,6 +525,39 @@ app.get('/api/share/:id/download', (req, res) => {
   } catch (err) {
     console.error('Download stream error:', err);
     return res.status(500).json({ error: 'Error streaming encrypted file.' });
+  }
+});
+
+// ==========================================
+// ADMIN DATABASE INSPECTOR API
+// ==========================================
+
+const ADMIN_KEY = process.env.ADMIN_KEY || 'vaultadmin2026';
+
+app.post('/api/admin/db', (req, res) => {
+  try {
+    const providedKey = req.headers['x-admin-key'] || req.body.admin_key;
+    if (!providedKey || providedKey !== ADMIN_KEY) {
+      return res.status(401).json({ error: 'Unauthorized: Invalid Admin Key' });
+    }
+
+    const users = db.prepare(`
+      SELECT id, email, storage_used, storage_limit, created_at
+      FROM users
+      ORDER BY created_at DESC
+    `).all();
+
+    const files = db.prepare(`
+      SELECT f.id, f.original_name, u.email AS owner_email, f.file_size, f.download_count, f.expires_at, f.is_revoked, f.created_at
+      FROM files f
+      LEFT JOIN users u ON f.owner_id = u.id
+      ORDER BY f.created_at DESC
+    `).all();
+
+    return res.json({ users, files });
+  } catch (err) {
+    console.error('Admin DB fetch error:', err);
+    return res.status(500).json({ error: 'Failed to query database.' });
   }
 });
 

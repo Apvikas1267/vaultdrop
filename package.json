@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "test": "node test_suite.js"
+    "test": "node test_suite.js",
+    "db": "node view_db.js"
   },
   "keywords": [
     "vault",

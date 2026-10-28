@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VaultDrop — Secure Decryption & Download</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              900: '#312e81',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="min-h-full flex flex-col justify-between font-sans antialiased bg-slate-950 text-slate-100 selection:bg-brand-500 selection:text-white bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.18),rgba(255,255,255,0))]">
+
+  <!-- Minimal Header -->
+  <header class="border-b border-slate-800/80 bg-slate-950/60 backdrop-blur-md">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <a href="/" class="flex items-center space-x-3">
+        <div class="h-9 w-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+          </svg>
+        </div>
+        <span class="text-xl font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-300 bg-clip-text text-transparent">VaultDrop</span>
+      </a>
+      <a href="/" class="text-xs font-semibold text-slate-400 hover:text-white px-3 py-1.5 rounded-lg border border-slate-800 hover:bg-slate-900 transition">
+        Vault Home
+      </a>
+    </div>
+  </header>
+
+  <!-- Main Content Card Container -->
+  <main class="flex-grow flex items-center justify-center px-4 py-12">
+    <div class="w-full max-w-xl">
+      
+      <!-- Loading State -->
+      <div id="state-loading" class="bg-slate-900/80 border border-slate-800 rounded-2xl p-10 text-center shadow-2xl space-y-4">
+        <div class="w-12 h-12 rounded-xl bg-brand-500/10 text-brand-400 flex items-center justify-center mx-auto animate-pulse">
+          <svg class="w-6 h-6 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+        </div>
+        <h3 class="text-base font-semibold text-white">Inspecting Secure Link...</h3>
+        <p class="text-xs text-slate-400">Verifying link validity, cryptographic signature, and expiration.</p>
+      </div>
+
+      <!-- State: EXPIRED (410) -->
+      <div id="state-expired" class="hidden bg-slate-900/80 border border-amber-900/40 rounded-2xl p-8 sm:p-10 text-center shadow-2xl space-y-5">
+        <div class="w-16 h-16 rounded-2xl bg-amber-500/10 text-amber-400 flex items-center justify-center mx-auto border border-amber-500/20">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-semibold uppercase tracking-wide mb-2">
+            HTTP 410 • Link Expired
+          </div>
+          <h2 class="text-2xl font-bold text-white">Sharing Link Expired</h2>
+          <p class="text-sm text-slate-400 mt-2 max-w-md mx-auto" id="expired-details">
+            This secure document link has passed its configured expiration window and has been deactivated.
+          </p>
+        </div>
+        <div class="pt-2">
+          <a href="/" class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition border border-slate-700">
+            Return to VaultDrop
+          </a>
+        </div>
+      </div>
+
+      <!-- State: REVOKED (403) -->
+      <div id="state-revoked" class="hidden bg-slate-900/80 border border-red-900/40 rounded-2xl p-8 sm:p-10 text-center shadow-2xl space-y-5">
+        <div class="w-16 h-16 rounded-2xl bg-red-500/10 text-red-400 flex items-center justify-center mx-auto border border-red-500/20">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/>
+          </svg>
+        </div>
+        <div>
+          <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/10 border border-red-500/30 text-red-400 text-xs font-semibold uppercase tracking-wide mb-2">
+            HTTP 403 • Access Revoked
+          </div>
+          <h2 class="text-2xl font-bold text-white">Access Has Been Revoked</h2>
+          <p class="text-sm text-slate-400 mt-2 max-w-md mx-auto">
+            The document owner has revoked public access to this encrypted file. Further downloads are blocked.
+          </p>
+        </div>
+        <div class="pt-2">
+          <a href="/" class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition border border-slate-700">
+            Return to VaultDrop
+          </a>
+        </div>
+      </div>
+
+      <!-- State: NOT FOUND (404) -->
+      <div id="state-notfound" class="hidden bg-slate-900/80 border border-slate-800 rounded-2xl p-8 sm:p-10 text-center shadow-2xl space-y-5">
+        <div class="w-16 h-16 rounded-2xl bg-slate-800 text-slate-400 flex items-center justify-center mx-auto border border-slate-700">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        <div>
+          <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-400 text-xs font-semibold uppercase tracking-wide mb-2">
+            HTTP 404 • File Not Found
+          </div>
+          <h2 class="text-2xl font-bold text-white">Document Not Found</h2>
+          <p class="text-sm text-slate-400 mt-2 max-w-md mx-auto">
+            The requested document could not be found. It may have been permanently deleted by its owner or the link is incorrect.
+          </p>
+        </div>
+        <div class="pt-2">
+          <a href="/" class="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold transition border border-slate-700">
+            Return to VaultDrop
+          </a>
+        </div>
+      </div>
+
+      <!-- State: MISSING KEY NOTICE -->
+      <div id="state-missing-key" class="hidden bg-slate-900/80 border border-indigo-900/50 rounded-2xl p-8 sm:p-10 shadow-2xl space-y-5">
+        <div class="w-16 h-16 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center mx-auto border border-indigo-500/20">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+          </svg>
+        </div>
+        <div class="text-center">
+          <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-xs font-semibold uppercase tracking-wide mb-2">
+            Zero-Knowledge Security
+          </div>
+          <h2 class="text-2xl font-bold text-white">Missing Decryption Key</h2>
+          <p class="text-sm text-slate-400 mt-2">
+            The link is valid, but the URL is missing the <code class="text-indigo-300 font-mono">#key=...</code> parameter. Because the key is never stored on the server, the browser cannot decrypt the file without it.
+          </p>
+        </div>
+
+        <!-- Manual Key Entry -->
+        <div class="p-4 bg-slate-950/60 border border-slate-800 rounded-xl space-y-3">
+          <label class="block text-xs font-medium text-slate-300">If you received the 64-character encryption key separately, enter it here:</label>
+          <div class="flex gap-2">
+            <input type="text" id="manual-key-input" placeholder="e.g. 7f8c4b2a..." class="flex-grow bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs font-mono text-white placeholder-slate-500 focus:outline-none focus:border-brand-500">
+            <button onclick="applyManualKey()" class="px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-xs font-semibold transition">
+              Apply Key
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- State: VALID FILE & READY TO DECRYPT -->
+      <div id="state-ready" class="hidden bg-slate-900/90 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6">
+        
+        <!-- Header badge -->
+        <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-xs font-semibold">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            Zero-Knowledge Verified
+          </div>
+          <div class="text-xs text-slate-400 flex items-center gap-1" id="file-expiry-badge">
+            <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span id="file-expiry-text">Expires soon</span>
+          </div>
+        </div>
+
+        <!-- File Details Card -->
+        <div class="p-4 bg-slate-950/70 border border-slate-800/80 rounded-xl flex items-center space-x-4">
+          <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-brand-600/30 to-indigo-500/20 text-brand-400 flex items-center justify-center flex-shrink-0 border border-brand-500/30">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+          </div>
+          <div class="truncate flex-grow">
+            <h3 id="file-name-display" class="text-base font-bold text-white truncate">document.pdf</h3>
+            <div class="flex items-center gap-3 text-xs text-slate-400 mt-0.5">
+              <span id="file-size-display">1.4 MB</span>
+              <span>•</span>
+              <span id="file-downloads-display">0 downloads</span>
+              <span>•</span>
+              <span class="text-indigo-400 font-medium">AES-256-GCM</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Privacy Assurance -->
+        <div class="p-3.5 bg-slate-950/40 border border-slate-800/60 rounded-xl text-xs text-slate-400 space-y-1">
+          <div class="font-semibold text-slate-300 flex items-center gap-1.5">
+            <svg class="w-4 h-4 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+            </svg>
+            <span>In-Browser Client-Side Decryption</span>
+          </div>
+          <p>The encrypted ciphertext will be downloaded and decrypted locally in your browser RAM using the key in the URL hash. Plaintext never touches the network.</p>
+        </div>
+
+        <!-- Decrypt & Download Button -->
+        <div class="space-y-3">
+          <button id="download-btn" onclick="startDecryptionAndDownload()" class="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-semibold text-sm shadow-xl shadow-brand-600/30 transition transform hover:-translate-y-0.5 flex items-center justify-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+            <span id="download-btn-text">Decrypt & Download Document</span>
+          </button>
+
+          <!-- Progress Bar -->
+          <div id="decrypt-progress" class="hidden space-y-2">
+            <div class="flex justify-between text-xs text-slate-400">
+              <span id="decrypt-step-text">Downloading encrypted blob...</span>
+              <span id="decrypt-percent-text">20%</span>
+            </div>
+            <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+              <div id="decrypt-progress-fill" class="bg-brand-500 h-full w-0 transition-all duration-300"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-900 py-6 text-center text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center space-x-2">
+        <span class="font-semibold text-slate-400">VaultDrop</span>
+        <span>•</span>
+        <span>Zero-Knowledge File Security</span>
+      </div>
+      <div>Encrypted via Web Crypto API (AES-GCM 256)</div>
+    </div>
+  </footer>
+
+  <!-- Load Crypto Helper -->
+  <script src="/js/crypto-helper.js"></script>
+
+  <script>
+    let fileId = null;
+    let fileKey = null;
+    let fileMeta = null;
+
+    // Parse File ID and URL Hash Key
+    function parseShareUrl() {
+      // 1. Extract File ID from pathname e.g. /share/abc-123 or search ?id=abc-123
+      const pathParts = window.location.pathname.split('/').filter(Boolean);
+      if (pathParts[0] === 'share' && pathParts[1]) {
+        fileId = pathParts[1];
+      } else {
+        const params = new URLSearchParams(window.location.search);
+        fileId = params.get('id');
+      }
+
+      // 2. Extract Key from URL hash e.g. #key=7f8a... or #7f8a...
+      const hash = window.location.hash || '';
+      const keyMatch = hash.match(/key=([a-fA-F0-9_-]+)/i);
+      if (keyMatch) {
+        fileKey = keyMatch[1];
+      } else if (hash.startsWith('#') && hash.length > 10) {
+        fileKey = hash.substring(1).replace(/^key=/, '').trim();
+      }
+    }
+
+    async function initSharePage() {
+      parseShareUrl();
+
+      if (!fileId) {
+        showState('notfound');
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/share/${fileId}/meta`);
+        const data = await res.json();
+
+        if (res.status === 404) {
+          showState('notfound');
+          return;
+        }
+
+        if (res.status === 403) {
+          showState('revoked');
+          return;
+        }
+
+        if (res.status === 410) {
+          const expText = document.getElementById('expired-details');
+          if (data.expires_at) {
+            const expDate = new Date(data.expires_at).toLocaleString();
+            expText.textContent = `This link expired on ${expDate} and can no longer be downloaded.`;
+          }
+          showState('expired');
+          return;
+        }
+
+        if (!res.ok) {
+          showState('notfound');
+          return;
+        }
+
+        fileMeta = data;
+
+        // If key is missing from hash, show missing key warning
+        if (!fileKey) {
+          showState('missing-key');
+          return;
+        }
+
+        // Everything valid -> display ready card
+        populateFileInfo(fileMeta);
+        showState('ready');
+      } catch (err) {
+        console.error('Initialization error:', err);
+        showState('notfound');
+      }
+    }
+
+    function populateFileInfo(meta) {
+      document.getElementById('file-name-display').textContent = meta.original_name;
+      document.getElementById('file-size-display').textContent = VaultCrypto.formatBytes(meta.file_size);
+      document.getElementById('file-downloads-display').textContent = `${meta.download_count} download${meta.download_count === 1 ? '' : 's'}`;
+
+      const timeInfo = VaultCrypto.formatTimeRemaining(meta.expires_at);
+      document.getElementById('file-expiry-text').textContent = timeInfo.text;
+    }
+
+    function applyManualKey() {
+      const input = document.getElementById('manual-key-input').value.trim();
+      if (!input) {
+        alert('Please enter a valid key.');
+        return;
+      }
+      fileKey = input;
+      window.location.hash = `key=${input}`;
+      populateFileInfo(fileMeta);
+      showState('ready');
+    }
+
+    async function startDecryptionAndDownload() {
+      if (!fileId || !fileKey || !fileMeta) return;
+
+      const btn = document.getElementById('download-btn');
+      const progress = document.getElementById('decrypt-progress');
+      const progressFill = document.getElementById('decrypt-progress-fill');
+      const stepText = document.getElementById('decrypt-step-text');
+      const percentText = document.getElementById('decrypt-percent-text');
+
+      btn.disabled = true;
+      progress.classList.remove('hidden');
+
+      try {
+        // Step 1: Download ciphertext payload
+        stepText.textContent = '1. Downloading encrypted payload from vault...';
+        progressFill.style.width = '30%';
+        percentText.textContent = '30%';
+
+        const res = await fetch(`/api/share/${fileId}/download`);
+        if (!res.ok) {
+          if (res.status === 410) throw new Error('File has expired.');
+          if (res.status === 403) throw new Error('File access has been revoked.');
+          throw new Error('Failed to download encrypted payload.');
+        }
+
+        progressFill.style.width = '65%';
+        percentText.textContent = '65%';
+        stepText.textContent = '2. Decrypting payload with AES-GCM 256-bit in browser...';
+
+        const encryptedBuffer = await res.arrayBuffer();
+
+        // Step 2: Import Key & Decrypt
+        const cryptoKey = await VaultCrypto.importKeyFromHex(fileKey);
+        const decryptedBuffer = await VaultCrypto.decryptPayload(encryptedBuffer, cryptoKey);
+
+        progressFill.style.width = '95%';
+        percentText.textContent = '95%';
+        stepText.textContent = '3. Saving decrypted file to your device...';
+
+        // Step 3: Trigger safe browser download
+        const decryptedBlob = new Blob([decryptedBuffer], {
+          type: fileMeta.mime_type || 'application/octet-stream'
+        });
+
+        VaultCrypto.saveBlobToFile(decryptedBlob, fileMeta.original_name);
+
+        progressFill.style.width = '100%';
+        percentText.textContent = '100%';
+        stepText.textContent = 'Decryption successful! File saved.';
+
+        // Increment local download count display
+        fileMeta.download_count += 1;
+        document.getElementById('file-downloads-display').textContent = `${fileMeta.download_count} downloads`;
+
+      } catch (err) {
+        console.error('Decryption error:', err);
+        alert(`Decryption failed: ${err.message}. Please verify the key in your link.`);
+      } finally {
+        setTimeout(() => {
+          btn.disabled = false;
+        }, 1500);
+      }
+    }
+
+    function showState(stateName) {
+      const states = ['loading', 'expired', 'revoked', 'notfound', 'missing-key', 'ready'];
+      states.forEach(s => {
+        const el = document.getElementById(`state-${s}`);
+        if (el) {
+          if (s === stateName) {
+            el.classList.remove('hidden');
+          } else {
+            el.classList.add('hidden');
+          }
+        }
+      });
+    }
+
+    window.addEventListener('DOMContentLoaded', initSharePage);
+  </script>
+</body>
+</html>

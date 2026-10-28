@@ -1,0 +1,27 @@
+========================================================================
+VaultDrop — Quick Run & Verification Commands
+========================================================================
+
+1. Navigate to the project directory:
+   cd "C:\Users\AP VIKAS\OneDrive\ENGINEERING\SKILL LAB\vaultdrop"
+
+2. Run the automated test suite (17/17 tests passing):
+   npm test
+
+3. Start the application:
+   npm start
+
+4. Open in browser:
+   http://localhost:3000
+
+========================================================================
+Features to Try:
+- Sign Up with any email and password (minimum 6 characters).
+- Watch the 50 MB storage quota meter update in real time.
+- Upload any document (PDF, PNG, JPG, TXT, DOCX) up to 10 MB.
+- Notice the browser instantly encrypts the payload using AES-GCM 256-bit.
+- Copy the generated zero-knowledge share link with #key=<64-char-hex>.
+- Open the share link in an Incognito window to decrypt & download!
+- Test Expiration (1h, 6h, 24h, 7d) or click 'Revoke' to test the 403 Forbidden card.
+- Try uploading a .exe or .bat file to verify the malicious file blocker!
+========================================================================

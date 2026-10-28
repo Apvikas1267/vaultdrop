@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VaultDrop — My Secure Vault Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              900: '#312e81',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="min-h-full flex flex-col font-sans antialiased bg-slate-950 text-slate-100 selection:bg-brand-500 selection:text-white">
+
+  <!-- Top Navigation -->
+  <header class="border-b border-slate-800 bg-slate-900/60 backdrop-blur-md sticky top-0 z-30">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <a href="/dashboard" class="flex items-center space-x-3">
+          <div class="h-9 w-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+            </svg>
+          </div>
+          <span class="text-xl font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-300 bg-clip-text text-transparent">VaultDrop</span>
+        </a>
+      </div>
+
+      <div class="flex items-center space-x-4">
+        <div class="hidden sm:flex items-center space-x-2 text-xs text-slate-400 bg-slate-800/60 px-3 py-1.5 rounded-full border border-slate-700/50">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span id="user-email-display">Loading...</span>
+        </div>
+        <button onclick="logout()" class="text-xs font-semibold px-3 py-1.5 rounded-lg border border-slate-700 hover:bg-slate-800 text-slate-300 hover:text-white transition flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+          </svg>
+          <span>Sign Out</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    
+    <!-- Top Stat & Quota Bar -->
+    <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-lg font-semibold text-white flex items-center gap-2">
+            <span>Storage Quota</span>
+            <span id="quota-percent-badge" class="text-xs font-medium px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20">0%</span>
+          </h2>
+          <p class="text-xs text-slate-400 mt-1">Per-user limit: 50.0 MB. Encrypted payload usage is tracked in real-time.</p>
+        </div>
+        <div class="text-right">
+          <div class="text-sm font-semibold text-white" id="quota-text">0 MB / 50 MB</div>
+          <div class="text-xs text-slate-400" id="quota-remaining-text">50.0 MB available</div>
+        </div>
+      </div>
+
+      <!-- Quota Progress Bar -->
+      <div class="w-full bg-slate-800 rounded-full h-3 mt-4 overflow-hidden p-0.5">
+        <div id="quota-bar" class="bg-gradient-to-r from-brand-500 to-indigo-500 h-full rounded-full transition-all duration-500" style="width: 0%"></div>
+      </div>
+    </div>
+
+    <!-- Upload Section -->
+    <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            <svg class="w-5 h-5 text-brand-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+            </svg>
+            <span>Encrypt & Upload Document</span>
+          </h2>
+          <p class="text-xs text-slate-400 mt-0.5">Encrypted with client-side AES-GCM 256-bit before leaving your browser. Max 10MB per file.</p>
+        </div>
+      </div>
+
+      <!-- Upload Form & Drop Zone -->
+      <form id="upload-form" onsubmit="handleUpload(event)" class="space-y-4">
+        
+        <!-- Drag and drop zone -->
+        <div id="drop-zone" class="border-2 border-dashed border-slate-700 hover:border-brand-500/80 rounded-xl p-8 text-center cursor-pointer transition bg-slate-950/40 relative">
+          <input type="file" id="file-input" class="hidden" onchange="handleFileSelect(event)">
+          
+          <div id="drop-content-idle" class="space-y-3">
+            <div class="w-12 h-12 rounded-xl bg-brand-500/10 text-brand-400 flex items-center justify-center mx-auto">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+              </svg>
+            </div>
+            <div>
+              <p class="text-sm font-medium text-slate-200">
+                <span class="text-brand-400 underline font-semibold">Click to browse</span> or drag and drop your file here
+              </p>
+              <p class="text-xs text-slate-500 mt-1">PDF, Word, Excel, Images, Code, Archives (Strictly no executable scripts .exe, .bat, .sh)</p>
+            </div>
+          </div>
+
+          <!-- Selected File View -->
+          <div id="drop-content-selected" class="hidden flex items-center justify-between p-3 bg-slate-800/80 rounded-lg border border-slate-700">
+            <div class="flex items-center space-x-3 text-left overflow-hidden">
+              <div class="w-9 h-9 rounded-lg bg-brand-500/20 text-brand-300 flex-shrink-0 flex items-center justify-center">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+              </div>
+              <div class="truncate">
+                <div id="selected-file-name" class="text-sm font-semibold text-white truncate">filename.pdf</div>
+                <div id="selected-file-size" class="text-xs text-slate-400">1.2 MB</div>
+              </div>
+            </div>
+            <button type="button" onclick="clearSelectedFile(event)" class="text-slate-400 hover:text-red-400 p-1.5 transition">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Expiry and Submit Actions Row -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
+          <div class="flex items-center space-x-3 w-full sm:w-auto">
+            <label class="text-xs font-semibold text-slate-300 flex items-center gap-1.5 whitespace-nowrap">
+              <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              <span>Link Expiration:</span>
+            </label>
+            <select id="expiry-select" class="bg-slate-950 border border-slate-800 text-sm rounded-lg px-3 py-2 text-white focus:outline-none focus:border-brand-500 transition">
+              <option value="1h">1 Hour</option>
+              <option value="6h">6 Hours</option>
+              <option value="24h" selected>24 Hours (Recommended)</option>
+              <option value="7d">7 Days</option>
+            </select>
+          </div>
+
+          <button type="submit" id="upload-btn" disabled class="w-full sm:w-auto px-6 py-2.5 rounded-lg bg-brand-600 hover:bg-brand-500 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold shadow-lg shadow-brand-600/30 transition flex items-center justify-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+            </svg>
+            <span id="upload-btn-text">Encrypt & Upload</span>
+          </button>
+        </div>
+
+        <!-- Real-time Progress Bar during encryption and upload -->
+        <div id="upload-progress-container" class="hidden space-y-2 pt-2">
+          <div class="flex justify-between text-xs text-slate-400">
+            <span id="upload-step-text">1. Encrypting with AES-GCM 256-bit...</span>
+            <span id="upload-percent-text">0%</span>
+          </div>
+          <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden">
+            <div id="upload-progress-fill" class="bg-brand-500 h-full w-0 transition-all duration-300"></div>
+          </div>
+        </div>
+
+      </form>
+    </div>
+
+    <!-- Uploaded Files Section -->
+    <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl space-y-4">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-lg font-bold text-white flex items-center gap-2">
+            <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/>
+            </svg>
+            <span>My Active Vault Files</span>
+          </h2>
+          <p class="text-xs text-slate-400">Manage your active files, copy zero-knowledge links, check download telemetry, or revoke access.</p>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <div class="relative">
+            <input type="text" id="file-search" oninput="filterFiles()" placeholder="Search files..." class="bg-slate-950 border border-slate-800 text-xs rounded-lg pl-8 pr-3 py-1.5 text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 transition">
+            <svg class="w-4 h-4 text-slate-500 absolute left-2.5 top-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+          </div>
+          <button onclick="loadDashboardData()" title="Refresh files" class="p-1.5 rounded-lg border border-slate-800 hover:bg-slate-800 text-slate-400 hover:text-white transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Files Table (Desktop) / Cards (Mobile) -->
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-300">
+          <thead class="bg-slate-950/70 border-b border-slate-800 text-slate-400 font-semibold uppercase tracking-wider">
+            <tr>
+              <th class="py-3 px-4">Document</th>
+              <th class="py-3 px-4">Size</th>
+              <th class="py-3 px-4">Expiration</th>
+              <th class="py-3 px-4">Downloads</th>
+              <th class="py-3 px-4">Access Status</th>
+              <th class="py-3 px-4 text-right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="files-tbody" class="divide-y divide-slate-800/60 font-normal">
+            <!-- Dynamically populated -->
+            <tr>
+              <td colspan="6" class="py-8 text-center text-slate-500">Loading your secure documents...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Share Link Generated Modal -->
+  <div id="share-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-xl p-6 sm:p-8 shadow-2xl relative space-y-6">
+      
+      <!-- Close button -->
+      <button onclick="closeShareModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+          </svg>
+        </div>
+        <div>
+          <h3 class="text-lg font-bold text-white">File Encrypted & Ready to Share!</h3>
+          <p class="text-xs text-slate-400">Zero-knowledge share link generated with AES-256 decryption key.</p>
+        </div>
+      </div>
+
+      <!-- Notice on Hash Key -->
+      <div class="p-3.5 bg-indigo-950/40 border border-indigo-800/50 rounded-xl text-xs text-indigo-200 space-y-1">
+        <div class="font-semibold flex items-center gap-1.5 text-indigo-300">
+          <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <span>Zero-Knowledge Notice</span>
+        </div>
+        <p>The decryption key is appended after the URL hash symbol (<code class="text-white font-mono">#key=...</code>). The server never receives this key. Only recipients of this exact link can decrypt and view the file.</p>
+      </div>
+
+      <!-- Share URL Input & Copy -->
+      <div class="space-y-1.5">
+        <label class="text-xs font-medium text-slate-300">Shareable URL</label>
+        <div class="flex items-center gap-2">
+          <input type="text" id="share-modal-url" readonly class="w-full bg-slate-950 border border-slate-800 text-xs font-mono text-brand-300 rounded-lg px-3 py-2.5 select-all focus:outline-none">
+          <button onclick="copyShareModalUrl()" class="px-4 py-2.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-medium text-xs shadow-md shadow-brand-600/30 transition flex items-center gap-1.5 flex-shrink-0">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+            </svg>
+            <span id="copy-btn-text">Copy Link</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="pt-2 flex justify-end">
+        <button onclick="closeShareModal()" class="px-5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 transition">
+          Done
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- Load Crypto Helper -->
+  <script src="/js/crypto-helper.js"></script>
+
+  <script>
+    let selectedFile = null;
+    let allFiles = [];
+    let currentUser = null;
+
+    // Disallowed extensions check on client
+    const DISALLOWED_EXTENSIONS = [
+      '.exe', '.bat', '.sh', '.msi', '.scr', '.cmd', '.vbs',
+      '.ps1', '.com', '.jar', '.apk', '.app', '.dll', '.pif',
+      '.reg', '.wsf', '.cpl', '.hta'
+    ];
+
+    function isClientBlocked(filename) {
+      if (!filename) return false;
+      const lower = filename.toLowerCase();
+      return DISALLOWED_EXTENSIONS.some(ext => lower.endsWith(ext));
+    }
+
+    // Initialize Dashboard
+    async function initDashboard() {
+      await loadCurrentUser();
+      await loadDashboardData();
+      setupDragAndDrop();
+    }
+
+    // Load current user profile & quota
+    async function loadCurrentUser() {
+      try {
+        const res = await fetch('/api/auth/me');
+        if (!res.ok) {
+          window.location.href = '/?auth=login';
+          return;
+        }
+        const data = await res.json();
+        currentUser = data.user;
+
+        document.getElementById('user-email-display').textContent = currentUser.email;
+        updateQuotaDisplay(currentUser.storage_used, currentUser.storage_limit);
+      } catch (e) {
+        window.location.href = '/';
+      }
+    }
+
+    // Update Quota Visuals
+    function updateQuotaDisplay(usedBytes, limitBytes) {
+      const usedMb = usedBytes / (1024 * 1024);
+      const limitMb = limitBytes / (1024 * 1024);
+      const remainingMb = Math.max(0, limitMb - usedMb);
+      const percent = Math.min(100, Math.round((usedBytes / limitBytes) * 100));
+
+      document.getElementById('quota-text').textContent = `${usedMb.toFixed(1)} MB / ${limitMb.toFixed(0)} MB`;
+      document.getElementById('quota-remaining-text').textContent = `${remainingMb.toFixed(1)} MB remaining`;
+      
+      const badge = document.getElementById('quota-percent-badge');
+      badge.textContent = `${percent}% used`;
+
+      const bar = document.getElementById('quota-bar');
+      bar.style.width = `${percent}%`;
+
+      if (percent > 90) {
+        bar.className = 'bg-red-500 h-full rounded-full transition-all duration-500';
+        badge.className = 'text-xs font-medium px-2 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20';
+      } else if (percent > 70) {
+        bar.className = 'bg-amber-500 h-full rounded-full transition-all duration-500';
+        badge.className = 'text-xs font-medium px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20';
+      } else {
+        bar.className = 'bg-gradient-to-r from-brand-500 to-indigo-500 h-full rounded-full transition-all duration-500';
+        badge.className = 'text-xs font-medium px-2 py-0.5 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20';
+      }
+    }
+
+    // Load Files List
+    async function loadDashboardData() {
+      try {
+        const res = await fetch('/api/files');
+        if (!res.ok) throw new Error('Failed to load files');
+        const data = await res.json();
+        allFiles = data.files || [];
+        renderFilesTable(allFiles);
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    // Render Files Table
+    function renderFilesTable(files) {
+      const tbody = document.getElementById('files-tbody');
+      if (!files || files.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="6" class="py-12 text-center text-slate-500">
+              <svg class="w-10 h-10 mx-auto text-slate-700 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+              </svg>
+              No documents stored yet. Encrypt and upload your first file above!
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = files.map(file => {
+        const timeInfo = VaultCrypto.formatTimeRemaining(file.expires_at);
+        const isRevoked = file.is_revoked === 1;
+        const isExpired = timeInfo.expired;
+
+        let statusBadge;
+        if (isRevoked) {
+          statusBadge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 text-[11px] font-semibold"><span class="w-1.5 h-1.5 rounded-full bg-red-500"></span>Revoked</span>`;
+        } else if (isExpired) {
+          statusBadge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-700/50 text-slate-400 border border-slate-600/50 text-[11px] font-semibold">Expired</span>`;
+        } else {
+          statusBadge = `<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[11px] font-semibold"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Active</span>`;
+        }
+
+        const expiryDisplay = isExpired
+          ? `<span class="text-red-400 font-medium">Expired</span>`
+          : `<span class="text-slate-300">${timeInfo.text}</span>`;
+
+        return `
+          <tr class="hover:bg-slate-900/60 transition group">
+            <td class="py-3.5 px-4 font-medium text-white flex items-center space-x-3">
+              <div class="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center flex-shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+                </svg>
+              </div>
+              <div class="truncate max-w-[200px] sm:max-w-[280px]" title="${escapeHtml(file.original_name)}">
+                ${escapeHtml(file.original_name)}
+              </div>
+            </td>
+            <td class="py-3.5 px-4 text-slate-400">${VaultCrypto.formatBytes(file.file_size)}</td>
+            <td class="py-3.5 px-4">${expiryDisplay}</td>
+            <td class="py-3.5 px-4">
+              <span class="inline-flex items-center px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-[11px]">
+                ${file.download_count} dl
+              </span>
+            </td>
+            <td class="py-3.5 px-4">${statusBadge}</td>
+            <td class="py-3.5 px-4 text-right space-x-1.5 whitespace-nowrap">
+              <button onclick="copyFileLink('${file.id}')" title="Copy Zero-Knowledge Share Link" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-brand-600 hover:text-white text-slate-300 transition text-[11px] font-medium border border-slate-700/60 inline-flex items-center gap-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                </svg>
+                <span>Link</span>
+              </button>
+              <button onclick="toggleRevoke('${file.id}')" title="${isRevoked ? 'Restore access' : 'Revoke access'}" class="px-2.5 py-1 rounded ${isRevoked ? 'bg-emerald-950/60 hover:bg-emerald-600 text-emerald-300' : 'bg-amber-950/60 hover:bg-amber-600 text-amber-300'} hover:text-white transition text-[11px] font-medium border border-slate-700/60 inline-flex items-center gap-1">
+                ${isRevoked ? 'Restore' : 'Revoke'}
+              </button>
+              <button onclick="deleteFile('${file.id}')" title="Permanently delete file" class="px-2 py-1 rounded bg-slate-800 hover:bg-red-600 hover:text-white text-slate-400 transition text-[11px] font-medium border border-slate-700/60">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    // Filter files
+    function filterFiles() {
+      const q = document.getElementById('file-search').value.toLowerCase().trim();
+      if (!q) {
+        renderFilesTable(allFiles);
+        return;
+      }
+      const filtered = allFiles.filter(f => f.original_name.toLowerCase().includes(q));
+      renderFilesTable(filtered);
+    }
+
+    // Toggle Revoke State
+    async function toggleRevoke(fileId) {
+      try {
+        const res = await fetch(`/api/files/${fileId}/revoke`, { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to toggle revocation.');
+        showToast(data.message, 'success');
+        await loadDashboardData();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    // Delete File
+    async function deleteFile(fileId) {
+      if (!confirm('Are you sure you want to permanently delete this file? This cannot be undone.')) {
+        return;
+      }
+      try {
+        const res = await fetch(`/api/files/${fileId}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Failed to delete file.');
+        showToast('File deleted and quota restored.', 'success');
+        await loadCurrentUser();
+        await loadDashboardData();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+
+    // Copy Link from Table
+    function copyFileLink(fileId) {
+      const storedKey = localStorage.getItem(`vault_key_${fileId}`);
+      let fullUrl = `${window.location.origin}/share/${fileId}`;
+      if (storedKey) {
+        fullUrl += `#key=${storedKey}`;
+      } else {
+        const userProvidedKey = prompt('Decryption key not cached locally in this browser. If you have the key hex, enter it below to construct the link (or leave blank for metadata link):');
+        if (userProvidedKey) {
+          fullUrl += `#key=${userProvidedKey.trim()}`;
+        }
+      }
+
+      navigator.clipboard.writeText(fullUrl).then(() => {
+        showToast('Zero-knowledge share link copied to clipboard!', 'success');
+      }).catch(() => {
+        prompt('Copy your link:', fullUrl);
+      });
+    }
+
+    // Drag and Drop Setup
+    function setupDragAndDrop() {
+      const dropZone = document.getElementById('drop-zone');
+      const fileInput = document.getElementById('file-input');
+
+      dropZone.addEventListener('click', (e) => {
+        if (!e.target.closest('button')) {
+          fileInput.click();
+        }
+      });
+
+      ['dragenter', 'dragover'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropZone.classList.add('border-brand-500', 'bg-brand-500/5');
+        });
+      });
+
+      ['dragleave', 'drop'].forEach(eventName => {
+        dropZone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropZone.classList.remove('border-brand-500', 'bg-brand-500/5');
+        });
+      });
+
+      dropZone.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        if (files.length > 0) {
+          processFile(files[0]);
+        }
+      });
+    }
+
+    function handleFileSelect(e) {
+      if (e.target.files.length > 0) {
+        processFile(e.target.files[0]);
+      }
+    }
+
+    function processFile(file) {
+      // 1. Check disallowed extensions
+      if (isClientBlocked(file.name)) {
+        showToast('Executable files (.exe, .bat, .sh, etc.) are prohibited for security.', 'error');
+        clearSelectedFile();
+        return;
+      }
+
+      // 2. Check 10MB limit
+      const maxBytes = 10 * 1024 * 1024;
+      if (file.size > maxBytes) {
+        showToast(`File size (${VaultCrypto.formatBytes(file.size)}) exceeds strict 10 MB limit.`, 'error');
+        clearSelectedFile();
+        return;
+      }
+
+      // 3. Check remaining user quota
+      if (currentUser) {
+        const availableSpace = currentUser.storage_limit - currentUser.storage_used;
+        if (file.size > availableSpace) {
+          showToast(`File exceeds remaining quota (${VaultCrypto.formatBytes(availableSpace)} remaining).`, 'error');
+          clearSelectedFile();
+          return;
+        }
+      }
+
+      selectedFile = file;
+      document.getElementById('selected-file-name').textContent = file.name;
+      document.getElementById('selected-file-size').textContent = VaultCrypto.formatBytes(file.size);
+      document.getElementById('drop-content-idle').classList.add('hidden');
+      document.getElementById('drop-content-selected').classList.remove('hidden');
+      document.getElementById('upload-btn').disabled = false;
+    }
+
+    function clearSelectedFile(e) {
+      if (e) e.stopPropagation();
+      selectedFile = null;
+      document.getElementById('file-input').value = '';
+      document.getElementById('drop-content-idle').classList.remove('hidden');
+      document.getElementById('drop-content-selected').classList.add('hidden');
+      document.getElementById('upload-btn').disabled = true;
+    }
+
+    // Handle Upload & Encryption
+    async function handleUpload(e) {
+      e.preventDefault();
+      if (!selectedFile) return;
+
+      const uploadBtn = document.getElementById('upload-btn');
+      const progressContainer = document.getElementById('upload-progress-container');
+      const progressFill = document.getElementById('upload-progress-fill');
+      const stepText = document.getElementById('upload-step-text');
+      const percentText = document.getElementById('upload-percent-text');
+
+      uploadBtn.disabled = true;
+      progressContainer.classList.remove('hidden');
+      progressFill.style.width = '15%';
+      percentText.textContent = '15%';
+      stepText.textContent = '1. Generating 256-bit AES-GCM Key...';
+
+      try {
+        // Step 1: Generate key
+        const key = await VaultCrypto.generateKey();
+        const hexKey = await VaultCrypto.exportKeyToHex(key);
+
+        // Step 2: Read file buffer & encrypt
+        stepText.textContent = '2. Encrypting document payload in browser...';
+        progressFill.style.width = '40%';
+        percentText.textContent = '40%';
+
+        const fileBuffer = await selectedFile.arrayBuffer();
+        const encryptedBlob = await VaultCrypto.encryptFile(fileBuffer, key);
+
+        // Step 3: Upload encrypted blob to backend
+        stepText.textContent = '3. Uploading encrypted ciphertext to vault...';
+        progressFill.style.width = '75%';
+        percentText.textContent = '75%';
+
+        const formData = new FormData();
+        formData.append('file', encryptedBlob, 'vault_payload.bin');
+        formData.append('original_name', selectedFile.name);
+        formData.append('mime_type', selectedFile.type || 'application/octet-stream');
+        formData.append('expiry', document.getElementById('expiry-select').value);
+
+        const res = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          throw new Error(data.error || 'Upload failed.');
+        }
+
+        progressFill.style.width = '100%';
+        percentText.textContent = '100%';
+        stepText.textContent = '4. Done! Zero-knowledge link ready.';
+
+        const fileId = data.file.id;
+        // Save key in local storage for owner ease
+        localStorage.setItem(`vault_key_${fileId}`, hexKey);
+
+        const shareUrl = `${window.location.origin}/share/${fileId}#key=${hexKey}`;
+        openShareModal(shareUrl);
+
+        // Reset form
+        clearSelectedFile();
+        await loadCurrentUser();
+        await loadDashboardData();
+        showToast('Document securely uploaded & encrypted!', 'success');
+      } catch (err) {
+        showToast(err.message, 'error');
+      } finally {
+        setTimeout(() => {
+          progressContainer.classList.add('hidden');
+          uploadBtn.disabled = false;
+        }, 800);
+      }
+    }
+
+    // Share Modal
+    function openShareModal(url) {
+      document.getElementById('share-modal-url').value = url;
+      document.getElementById('copy-btn-text').textContent = 'Copy Link';
+      document.getElementById('share-modal').classList.remove('hidden');
+    }
+
+    function closeShareModal() {
+      document.getElementById('share-modal').classList.add('hidden');
+    }
+
+    function copyShareModalUrl() {
+      const input = document.getElementById('share-modal-url');
+      navigator.clipboard.writeText(input.value).then(() => {
+        document.getElementById('copy-btn-text').textContent = 'Copied!';
+        showToast('Link copied to clipboard!', 'success');
+        setTimeout(() => {
+          document.getElementById('copy-btn-text').textContent = 'Copy Link';
+        }, 2000);
+      });
+    }
+
+    // Toast System
+    function showToast(msg, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `pointer-events-auto px-4 py-3 rounded-xl border shadow-xl text-xs font-semibold flex items-center space-x-2 transition-all transform duration-300 translate-y-2 opacity-0 ${
+        type === 'success' ? 'bg-emerald-950/90 border-emerald-800 text-emerald-200' :
+        type === 'error' ? 'bg-red-950/90 border-red-800 text-red-200' :
+        'bg-slate-900/90 border-slate-800 text-slate-200'
+      }`;
+
+      toast.innerHTML = `
+        <span>${escapeHtml(msg)}</span>
+      `;
+
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.classList.remove('translate-y-2', 'opacity-0');
+      }, 10);
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-y-2');
+        setTimeout(() => toast.remove(), 300);
+      }, 4000);
+    }
+
+    // Logout
+    async function logout() {
+      try {
+        await fetch('/api/auth/logout', { method: 'POST' });
+        window.location.href = '/';
+      } catch (e) {
+        window.location.href = '/';
+      }
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>"']/g, s => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      }[s]));
+    }
+
+    window.addEventListener('DOMContentLoaded', initDashboard);
+  </script>
+</body>
+</html>

@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VaultDrop — Zero-Knowledge Secure File Vault & Sharing</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              900: '#312e81',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    .glow-effect {
+      box-shadow: 0 0 50px -10px rgba(99, 102, 241, 0.25);
+    }
+    [x-cloak] { display: none !important; }
+  </style>
+</head>
+<body class="min-h-full flex flex-col justify-between selection:bg-brand-500 selection:text-white font-sans antialiased bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.2),rgba(255,255,255,0))]">
+
+  <!-- Navigation -->
+  <header class="border-b border-slate-800/80 backdrop-blur-md sticky top-0 z-40 bg-slate-950/70">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="h-9 w-9 rounded-xl bg-gradient-to-tr from-brand-600 to-indigo-400 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+          </svg>
+        </div>
+        <span class="text-xl font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-indigo-300 bg-clip-text text-transparent">VaultDrop</span>
+      </div>
+      <div class="flex items-center space-x-3" id="nav-actions">
+        <button onclick="openAuthModal('login')" class="text-sm font-medium text-slate-300 hover:text-white px-3 py-1.5 transition">Log in</button>
+        <button onclick="openAuthModal('signup')" class="text-sm font-medium bg-brand-600 hover:bg-brand-500 text-white px-4 py-1.5 rounded-lg shadow-md shadow-brand-600/30 transition">Get Started</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <main class="flex-grow flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 py-16 text-center">
+    <div class="max-w-4xl mx-auto space-y-8">
+      
+      <!-- Trust Badge -->
+      <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 text-xs font-semibold tracking-wide uppercase">
+        <svg class="w-4 h-4 text-indigo-400" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M10 1.944A11.954 11.954 0 012.166 5C2.056 5.649 2 6.319 2 7c0 5.225 3.34 9.67 8 11.317C14.66 16.67 18 12.225 18 7c0-.682-.057-1.35-.166-2.001A11.954 11.954 0 0110 1.944zM11 14a1 1 0 11-2 0 1 1 0 012 0zm0-7a1 1 0 10-2 0v3a1 1 0 102 0V7z" clip-rule="evenodd"/>
+        </svg>
+        End-to-End Zero-Knowledge Architecture
+      </div>
+
+      <!-- Main Headline -->
+      <h1 class="text-4xl sm:text-6xl font-extrabold tracking-tight text-white leading-tight">
+        Share documents with <br/>
+        <span class="bg-gradient-to-r from-brand-400 via-indigo-300 to-purple-400 bg-clip-text text-transparent">
+          Absolute Cryptographic Privacy
+        </span>
+      </h1>
+
+      <p class="max-w-2xl mx-auto text-lg text-slate-400">
+        Files are encrypted in your browser using military-grade <strong class="text-slate-200">AES-GCM 256-bit</strong> before leaving your device. The decryption key resides exclusively in the share URL hash — the server never sees your key or plaintext.
+      </p>
+
+      <!-- CTA Buttons -->
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+        <button onclick="openAuthModal('signup')" class="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-gradient-to-r from-brand-600 to-indigo-600 hover:from-brand-500 hover:to-indigo-500 text-white font-semibold shadow-lg shadow-indigo-600/30 transition transform hover:-translate-y-0.5">
+          Create Free Vault
+        </button>
+        <button onclick="openAuthModal('login')" class="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-800 font-semibold transition">
+          Sign In to Dashboard
+        </button>
+      </div>
+
+      <!-- Feature Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-16 text-left">
+        <!-- Feature 1 -->
+        <div class="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition">
+          <div class="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center mb-4">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/>
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-white">Zero-Knowledge Keys</h3>
+          <p class="text-sm text-slate-400 mt-2">
+            Keys are strictly appended after the URL hash fragment (<code class="text-indigo-300">#key=...</code>). RFC standard guarantees fragments are never transmitted to any web server.
+          </p>
+        </div>
+
+        <!-- Feature 2 -->
+        <div class="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition">
+          <div class="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center mb-4">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-white">Configurable Expiry</h3>
+          <p class="text-sm text-slate-400 mt-2">
+            Auto-destruct links after 1 hour, 6 hours, 24 hours, or 7 days. Once expired, links immediately return HTTP 410 Gone and can never be downloaded.
+          </p>
+        </div>
+
+        <!-- Feature 3 -->
+        <div class="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 transition">
+          <div class="w-10 h-10 rounded-lg bg-indigo-500/10 text-indigo-400 flex items-center justify-center mb-4">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+            </svg>
+          </div>
+          <h3 class="text-lg font-semibold text-white">Active Revocation & Tracking</h3>
+          <p class="text-sm text-slate-400 mt-2">
+            Monitor real-time download counts from your private dashboard. Instantly revoke public access with one click or purge files permanently.
+          </p>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Auth Modal -->
+  <div id="auth-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 sm:p-8 shadow-2xl relative">
+      
+      <!-- Close button -->
+      <button onclick="closeAuthModal()" class="absolute top-4 right-4 text-slate-400 hover:text-white transition">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+
+      <!-- Tabs -->
+      <div class="flex border-b border-slate-800 mb-6">
+        <button id="tab-login" onclick="switchAuthTab('login')" class="flex-1 pb-3 text-sm font-semibold border-b-2 border-brand-500 text-white">Log In</button>
+        <button id="tab-signup" onclick="switchAuthTab('signup')" class="flex-1 pb-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200">Sign Up</button>
+      </div>
+
+      <!-- Error Alert -->
+      <div id="auth-error" class="hidden mb-4 p-3 bg-red-900/30 border border-red-700/50 rounded-lg text-sm text-red-300"></div>
+
+      <!-- Auth Form -->
+      <form id="auth-form" onsubmit="handleAuthSubmit(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Email Address</label>
+          <input type="email" id="auth-email" required placeholder="user@example.com" class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition text-sm">
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Password</label>
+          <input type="password" id="auth-password" required minlength="6" placeholder="••••••••" class="w-full px-3.5 py-2.5 bg-slate-950 border border-slate-800 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 transition text-sm">
+          <p id="password-hint" class="hidden text-xs text-slate-500 mt-1">Minimum 6 characters</p>
+        </div>
+
+        <button type="submit" id="auth-submit-btn" class="w-full py-2.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white font-medium text-sm transition shadow-md shadow-brand-600/30">
+          Sign In
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-900 py-6 text-center text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center space-x-2">
+        <span class="font-semibold text-slate-400">VaultDrop</span>
+        <span>•</span>
+        <span>Zero-Knowledge Secure File Architecture</span>
+      </div>
+      <div>Client-Side AES-256-GCM • No Key Stored on Server</div>
+    </div>
+  </footer>
+
+  <script>
+    let currentAuthMode = 'login';
+
+    function openAuthModal(mode) {
+      currentAuthMode = mode;
+      switchAuthTab(mode);
+      document.getElementById('auth-modal').classList.remove('hidden');
+      document.getElementById('auth-email').focus();
+    }
+
+    function closeAuthModal() {
+      document.getElementById('auth-modal').classList.add('hidden');
+      hideAuthError();
+    }
+
+    function switchAuthTab(mode) {
+      currentAuthMode = mode;
+      hideAuthError();
+      const tabLogin = document.getElementById('tab-login');
+      const tabSignup = document.getElementById('tab-signup');
+      const submitBtn = document.getElementById('auth-submit-btn');
+      const pwdHint = document.getElementById('password-hint');
+
+      if (mode === 'login') {
+        tabLogin.className = 'flex-1 pb-3 text-sm font-semibold border-b-2 border-brand-500 text-white';
+        tabSignup.className = 'flex-1 pb-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200';
+        submitBtn.textContent = 'Sign In';
+        pwdHint.classList.add('hidden');
+      } else {
+        tabSignup.className = 'flex-1 pb-3 text-sm font-semibold border-b-2 border-brand-500 text-white';
+        tabLogin.className = 'flex-1 pb-3 text-sm font-semibold border-b-2 border-transparent text-slate-400 hover:text-slate-200';
+        submitBtn.textContent = 'Create Account';
+        pwdHint.classList.remove('hidden');
+      }
+    }
+
+    function showAuthError(msg) {
+      const errBox = document.getElementById('auth-error');
+      errBox.textContent = msg;
+      errBox.classList.remove('hidden');
+    }
+
+    function hideAuthError() {
+      const errBox = document.getElementById('auth-error');
+      errBox.classList.add('hidden');
+      errBox.textContent = '';
+    }
+
+    async function handleAuthSubmit(e) {
+      e.preventDefault();
+      hideAuthError();
+
+      const email = document.getElementById('auth-email').value.trim();
+      const password = document.getElementById('auth-password').value;
+      const submitBtn = document.getElementById('auth-submit-btn');
+
+      const originalBtnText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Processing...';
+
+      const endpoint = currentAuthMode === 'signup' ? '/api/auth/signup' : '/api/auth/login';
+
+      try {
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          showAuthError(data.error || 'Authentication failed.');
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalBtnText;
+          return;
+        }
+
+        // Successfully authenticated -> redirect to dashboard
+        window.location.href = '/dashboard';
+      } catch (err) {
+        showAuthError('Network error. Please try again.');
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalBtnText;
+      }
+    }
+
+    // Auto-check if user is already logged in
+    async function checkAuthStatus() {
+      try {
+        const res = await fetch('/api/auth/me');
+        if (res.ok) {
+          const navActions = document.getElementById('nav-actions');
+          navActions.innerHTML = `
+            <a href="/dashboard" class="text-sm font-medium bg-brand-600 hover:bg-brand-500 text-white px-4 py-1.5 rounded-lg shadow-md shadow-brand-600/30 transition flex items-center gap-1.5">
+              <span>Go to Dashboard</span>
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/></svg>
+            </a>
+          `;
+        }
+      } catch (e) {}
+    }
+
+    // Check query params for quick action (e.g. ?auth=signup)
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('auth') === 'signup') {
+      openAuthModal('signup');
+    } else if (urlParams.get('auth') === 'login') {
+      openAuthModal('login');
+    }
+
+    checkAuthStatus();
+  </script>
+</body>
+</html>

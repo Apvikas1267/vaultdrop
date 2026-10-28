@@ -306,8 +306,17 @@
 
     function isClientBlocked(filename) {
       if (!filename) return false;
-      const lower = filename.toLowerCase();
-      return DISALLOWED_EXTENSIONS.some(ext => lower.endsWith(ext));
+      const clean = filename.replace(/\0/g, '').trim().toLowerCase();
+      // Check direct extension
+      if (DISALLOWED_EXTENSIONS.some(ext => clean.endsWith(ext))) return true;
+      // Check double extensions (e.g. evil.exe.pdf, script.bat.png)
+      const parts = clean.split('.');
+      for (let i = 1; i < parts.length; i++) {
+        if (DISALLOWED_EXTENSIONS.includes('.' + parts[i])) return true;
+      }
+      // Check trailing dots or spaces
+      if (clean.endsWith('.') || clean.endsWith(' ')) return true;
+      return false;
     }
 
     // Initialize Dashboard

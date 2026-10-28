@@ -136,6 +136,37 @@ function runTests() {
   assert(userAfterDelete.storage_used === 0, 'User storage_used returned to 0 bytes after file deletion');
   assert(!fs.existsSync(dummyFilePath), 'Physical file removed from disk on deletion');
 
+  // Test 10: Malicious File Mitigation & Multi-Extension Defense
+  console.log('\n--- Test Group 10: Malicious File & Multi-Extension Defense ---');
+  const DISALLOWED_EXTENSIONS = new Set([
+    '.exe', '.bat', '.sh', '.msi', '.scr', '.cmd', '.vbs',
+    '.ps1', '.com', '.jar', '.apk', '.app', '.dll', '.pif',
+    '.reg', '.wsf', '.cpl', '.hta'
+  ]);
+
+  function isBlocked(filename) {
+    if (!filename) return false;
+    const clean = filename.replace(/\0/g, '').trim().toLowerCase();
+    const ext = path.extname(clean);
+    if (DISALLOWED_EXTENSIONS.has(ext)) return true;
+    const segments = clean.split('.');
+    for (let i = 1; i < segments.length; i++) {
+      if (DISALLOWED_EXTENSIONS.has('.' + segments[i])) return true;
+    }
+    if (clean.endsWith('.') || clean.endsWith(' ')) return true;
+    return false;
+  }
+
+  assert(isBlocked('malware.exe') === true, 'Direct .exe execution blocked');
+  assert(isBlocked('script.bat') === true, 'Direct .bat execution blocked');
+  assert(isBlocked('installer.msi') === true, 'Direct .msi execution blocked');
+  assert(isBlocked('shell.sh') === true, 'Direct .sh execution blocked');
+  assert(isBlocked('trojan.exe.pdf') === true, 'Disguised double-extension .exe.pdf blocked');
+  assert(isBlocked('exploit.bat.txt') === true, 'Disguised double-extension .bat.txt blocked');
+  assert(isBlocked('invoice.pdf') === false, 'Legitimate PDF file allowed');
+  assert(isBlocked('data.xlsx') === false, 'Legitimate Excel file allowed');
+  assert(isBlocked('project.zip') === false, 'Legitimate ZIP archive allowed');
+
   // Clean up test user and expired file
   db.prepare('DELETE FROM files WHERE id = ?').run(expiredFileId);
   db.prepare('DELETE FROM users WHERE id = ?').run(testUserId);

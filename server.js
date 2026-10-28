@@ -32,17 +32,36 @@ app.use(cookieParser());
 // Static Files
 app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 
-// Disallowed executable extensions
+// Disallowed executable extensions & scripts
 const DISALLOWED_EXTENSIONS = new Set([
   '.exe', '.bat', '.sh', '.msi', '.scr', '.cmd', '.vbs',
   '.ps1', '.com', '.jar', '.apk', '.app', '.dll', '.pif',
-  '.reg', '.wsf', '.cpl', '.hta', '.scr'
+  '.reg', '.wsf', '.cpl', '.hta'
 ]);
 
 function isExtensionBlocked(filename) {
   if (!filename) return false;
-  const ext = path.extname(filename).toLowerCase();
-  return DISALLOWED_EXTENSIONS.has(ext);
+  // Strip null bytes and normalize
+  const clean = filename.replace(/\0/g, '').trim().toLowerCase();
+  
+  // 1. Direct extension check
+  const ext = path.extname(clean);
+  if (DISALLOWED_EXTENSIONS.has(ext)) return true;
+
+  // 2. Double extension mitigation (e.g. file.exe.pdf, script.bat.txt)
+  const segments = clean.split('.');
+  for (let i = 1; i < segments.length; i++) {
+    if (DISALLOWED_EXTENSIONS.has('.' + segments[i])) {
+      return true;
+    }
+  }
+
+  // 3. Trailing dot or space spoofing
+  if (clean.endsWith('.') || clean.endsWith(' ')) {
+    return true;
+  }
+
+  return false;
 }
 
 // Multer Storage Configuration (Store locally in ./uploads)
